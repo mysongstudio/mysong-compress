@@ -8,12 +8,62 @@ import { optimize } from 'svgo';
 import * as csso from 'csso';
 import { CompressionCacheManagerImpl } from './CompressionCache.js';
 import { createHash } from 'crypto';
+import type { CompressionOptions } from './types.js';
 
+// Default configuration
+const defaultConfig: CompressionOptions = {
+    png: {
+        compressionLevel: 9.0,
+        palette: true
+    },
+    jpeg: {
+        mozjpeg: true,
+        trellisQuantisation: true,
+        overshootDeringing: true,
+        optimizeScans: true
+    },
+    webp: {
+        effort: 6.0
+    },
+    avif: {
+        effort: 9.0,
+        lossless: true
+    },
+    heif: {
+        effort: 9.0,
+        lossless: true
+    },
+    html: {
+        collapseWhitespace: true,
+        removeComments: true,
+        minifyCSS: true,
+        minifyJS: true
+    },
+    js: {
+        compress: true,
+        mangle: true
+    },
+    svg: {
+        multipass: true
+    }
+};
 
+export default function mysongCompress(options: CompressionOptions = {}): AstroIntegration {
+    // Merge compression options with defaults
+    const compressionConfig = {
+        ...defaultConfig,
+        ...options,
+        png: { ...defaultConfig.png, ...options.png },
+        jpeg: { ...defaultConfig.jpeg, ...options.jpeg },
+        webp: { ...defaultConfig.webp, ...options.webp },
+        avif: { ...defaultConfig.avif, ...options.avif },
+        heif: { ...defaultConfig.heif, ...options.heif },
+        html: { ...defaultConfig.html, ...options.html },
+        js: { ...defaultConfig.js, ...options.js },
+        svg: { ...defaultConfig.svg, ...options.svg }
+    };
 
-export default function mysongCompress(): AstroIntegration {
-
-    let config: AstroConfig;
+    let astroConfig: AstroConfig;
     let candidates: string[] = [];
     let originalSizeTotal = 0;
     let newSizeTotal = 0;
@@ -50,19 +100,19 @@ export default function mysongCompress(): AstroIntegration {
             logger.debug("Format: " + format);
             switch (format) {
                 case "png":
-                    pipeline = pipeline.png({ compressionLevel: 9.0, palette: true });
+                    pipeline = pipeline.png(compressionConfig.png);
                     break;
                 case "jpeg":
-                    pipeline = pipeline.jpeg({ mozjpeg: true, trellisQuantisation: true, overshootDeringing: true, optimizeScans: true, });
+                    pipeline = pipeline.jpeg(compressionConfig.jpeg);
                     break;
                 case "webp":
-                    pipeline = pipeline.webp({ effort: 6.0 });
+                    pipeline = pipeline.webp(compressionConfig.webp);
                     break;
                 case "avif":
-                    pipeline = pipeline.avif({  effort: 9.0, lossless: true });
+                    pipeline = pipeline.avif(compressionConfig.avif);
                     break;
                 case "heif":
-                    pipeline = pipeline.heif({ effort: 9.0, lossless: true });
+                    pipeline = pipeline.heif(compressionConfig.heif);
                     break;
                 default:
                     reason = "unknown format";
@@ -81,12 +131,7 @@ export default function mysongCompress(): AstroIntegration {
         } else if (/\.(html|htm)$/i.test(filePath)) {
             const htmlContent = fs.readFileSync(filePath, 'utf-8');
             
-            const minifiedHtml = await minify(htmlContent, {
-                collapseWhitespace: true,
-                removeComments: true,
-                minifyCSS: true,
-                minifyJS: true,
-            });
+            const minifiedHtml = await minify(htmlContent, compressionConfig.html);
 
             if (minifiedHtml.length < originalSize) {   
                 fs.writeFileSync(filePath, minifiedHtml);
@@ -100,10 +145,7 @@ export default function mysongCompress(): AstroIntegration {
         } else if (/\.(js|ts)$/i.test(filePath)) {
             const jsContent = fs.readFileSync(filePath, 'utf-8');
 
-            const minifiedJs = await terserMinify(jsContent, {
-                compress: true,
-                mangle: true,
-            });
+            const minifiedJs = await terserMinify(jsContent, compressionConfig.js);
 
             if (minifiedJs.code) {
                 if (minifiedJs.code.length < originalSize) {    
@@ -123,7 +165,7 @@ export default function mysongCompress(): AstroIntegration {
 
             const optimizedSvg = optimize(svgContent, {
                 path: filePath,
-                multipass: true,
+                ...compressionConfig.svg
             });
 
             if (optimizedSvg.data) {
@@ -175,14 +217,18 @@ export default function mysongCompress(): AstroIntegration {
     return {
         name: 'mysong-compress',
         hooks: {
-            'astro:config:done': async ({config: cfg, logger}) => {
+            'astro:config:done': async ({config, logger}) => {
                 logger.info('mysong-compress started');
-                config = cfg;
+                astroConfig = config; // Store Astro's config separately
 
-                cacheManager = new CompressionCacheManagerImpl(path.join(cfg.root.pathname, 'node_modules', '.astro'), logger);
+                cacheManager = new CompressionCacheManagerImpl(
+                    path.join(config.root.pathname, 'node_modules', '.astro'), 
+                    logger
+                );
                 await cacheManager.initialize();
 
-                logger.info(JSON.stringify(config));
+                logger.debug('Compression config:' + JSON.stringify(compressionConfig));
+                logger.debug('Astro config:' + JSON.stringify(config));
             },
             'astro:build:done': async ({assets, dir, logger}) => {
                 logger.info('mysong-compress build done');
