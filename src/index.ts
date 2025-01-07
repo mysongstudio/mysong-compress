@@ -179,7 +179,7 @@ export default function mysongCompress(): AstroIntegration {
                 logger.info('mysong-compress started');
                 config = cfg;
 
-                cacheManager = new CompressionCacheManagerImpl(path.join(cfg.root.pathname, '.astro'), logger);
+                cacheManager = new CompressionCacheManagerImpl(path.join(cfg.root.pathname, 'node_modules', '.astro'), logger);
                 await cacheManager.initialize();
 
                 logger.info(JSON.stringify(config));
