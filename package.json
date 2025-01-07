@@ -3,8 +3,13 @@
   "keywords": [
     "astro-integration"
   ],
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Compression integration for static assets in astro.",
+  "repository": "https://github.com/mysongstudio/mysong-compress",
+  "homepage": "https://github.com/mysongstudio/mysong-compress",
+  "bugs": {
+    "url": "https://github.com/mysongstudio/mysong-compress/issues"
+  },
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -18,7 +23,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Wladi Mitzel <mitzel@tawadi.de>",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "@types/csso": "^5.0.4",
     "@types/html-minifier-terser": "^7.0.2",

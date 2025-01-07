@@ -111,11 +111,11 @@ The integration includes a caching system that stores compressed versions of fil
 
 ## License
 
-ISC
+MIT
 
 ## Author
 
-Wladi Mitzel <mitzel@tawadi.de>
+Developed by [MySong.Studio](https://mysong.studio).
 
 ## Contributing
 
