@@ -1,0 +1,33 @@
+{
+  "name": "mysong-compress",
+  "keywords": [
+    "astro-integration"
+  ],
+  "version": "0.1.0",
+  "description": "Compression integration for static assets in astro.",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Wladi Mitzel <mitzel@tawadi.de>",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/csso": "^5.0.4",
+    "@types/html-minifier-terser": "^7.0.2",
+    "@types/node": "^22.10.5",
+    "@types/svgo": "^3.0.0",
+    "@types/terser": "^3.12.0",
+    "astro": "^5.1.3",
+    "typescript": "^5.7.2"
+  },
+  "type": "module",
+  "dependencies": {
+    "csso": "^5.0.5",
+    "html-minifier-terser": "^7.2.0",
+    "sharp": "^0.33.5",
+    "svgo": "^3.3.2",
+    "terser": "^5.37.0"
+  }
+}
