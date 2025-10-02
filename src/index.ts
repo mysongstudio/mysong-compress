@@ -1,6 +1,7 @@
 import type { AstroIntegration, AstroConfig, AstroIntegrationLogger } from 'astro';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import sharp from 'sharp';
 import { minify } from 'html-minifier-terser';
 import { minify as terserMinify } from 'terser';
@@ -42,16 +43,25 @@ export default function mysongCompress(options: CompressionOptions = {}): AstroI
     let cacheManager: CompressionCacheManagerImpl;
 
     async function traverseDirectory(directory: URL, logger: AstroIntegrationLogger) {
-        const files = fs.readdirSync(directory.pathname, { withFileTypes: true });
-        for (const file of files) {
-            if (file.isDirectory()) {
-                await traverseDirectory(new URL(path.join(directory.href, file.name)), logger);
+        const dirPath = fileURLToPath(directory);
+        try {
+            const files = fs.readdirSync(dirPath, { withFileTypes: true });
+            for (const file of files) {
+                if (file.isDirectory()) {
+                    const subDirPath = path.join(dirPath, file.name);
+                    // Check if directory actually exists (handles broken symlinks)
+                    if (fs.existsSync(subDirPath)) {
+                        await traverseDirectory(new URL(file.name + '/', directory), logger);
+                    }
+                }
+                else {
+                    const filePath = path.join(dirPath, file.name);
+                    logger.debug(filePath);
+                    candidates.push(filePath);
+                }
             }
-            else {
-                const filePath = path.join(directory.pathname, file.name);
-                logger.debug(filePath);
-                candidates.push(filePath);
-            }
+        } catch (error: any) {
+            logger.debug(`Error reading directory ${dirPath}: ${error.message}`);
         }
     }
 
@@ -185,7 +195,7 @@ export default function mysongCompress(options: CompressionOptions = {}): AstroI
 
                 if (compressionConfig.cache?.enabled) {
                     cacheManager = new CompressionCacheManagerImpl(
-                        path.join(config.root.pathname, compressionConfig.cache?.cacheDir || defaultCacheDir),
+                        path.join(fileURLToPath(config.root), compressionConfig.cache?.cacheDir || defaultCacheDir),
                         logger
                     );
                     await cacheManager.initialize();
