@@ -100,6 +100,28 @@ describe('Image Compression', async () => {
       .avif({ quality: 100, effort: 0 })
       .toBuffer()
     },
+    heif: {
+      name: 'test.heif',
+      content: await sharp({
+        create: {
+          width: 1000,
+          height: 1000,
+          channels: 4,
+          background: { r: 0, g: 255, b: 0, alpha: 1 }
+        }
+      })
+      .composite([{
+        input: Buffer.from(new Array(1000 * 1000 * 4).fill(128)), // Add noise
+        raw: {
+          width: 1000,
+          height: 1000,
+          channels: 4
+        },
+        blend: 'overlay'
+      }])
+      .heif({ quality: 100, effort: 0, compression: 'av1' })
+      .toBuffer()
+    },
     corruptImage: {
       name: 'corrupt.png',
       content: Buffer.from('not a real image')
@@ -276,7 +298,7 @@ describe('Image Compression', async () => {
     
     const compress = mysongCompress({
       avif: {
-        effort: 6
+        effort: 2
       }
     });
     
@@ -293,7 +315,33 @@ describe('Image Compression', async () => {
     expect(metadata.height).toBe(1000);
     expect(metadata.format).toBe('heif');
     expect(metadata.compression).toBe('av1');
-  }, 10000);
+  });
+
+  test('should compress Heif images', async () => {
+    // Set up test files
+    const filePath = await setupTestFile(tempDir, TEST_IMAGES.heif);
+    const originalSize = await getFileSize(filePath);
+    
+    const compress = mysongCompress({
+      heif: {
+        effort: 2
+      }
+    });
+    
+    await runCompression(compress);
+
+    const compressedSize = await getFileSize(filePath);
+    
+    // Verify compression
+    expect(compressedSize).toBeLessThan(originalSize);
+    
+    // Verify image is still valid
+    const metadata = await sharp(filePath).metadata();
+    expect(metadata.width).toBe(1000);
+    expect(metadata.height).toBe(1000);
+    expect(metadata.format).toBe('heif');
+    expect(metadata.compression).toBe('av1');
+  });
 
   test('should handle corrupt images gracefully', async () => {
     // Set up test files
