@@ -95,6 +95,7 @@ export default function mysongCompress(options: CompressionOptions = {}): AstroI
             if (/\.(jpe?g|png|webp|tiff?|avif|heif)$/i.test(filePath)) {
                 let pipeline = sharp(filePath);
                 const format = (await pipeline.metadata()).format;
+                const compression = (await pipeline.metadata()).compression;
                 logger.debug("Format: " + format);
 
                 const formatConfig = {
@@ -102,7 +103,7 @@ export default function mysongCompress(options: CompressionOptions = {}): AstroI
                     jpeg: () => pipeline.jpeg(compressionConfig.jpeg),
                     webp: () => pipeline.webp(compressionConfig.webp),
                     avif: () => pipeline.avif(compressionConfig.avif),
-                    heif: () => pipeline.heif(compressionConfig.heif)
+                    heif: () => pipeline.heif({...compressionConfig.heif, compression})
                 };
 
                 if (format && format in formatConfig) {

@@ -1,17 +1,17 @@
-import { describe, test, expect, beforeEach, afterEach } from 'vitest';
-import mysongCompress from '../src/index';
-import { setupTestFiles, getFileSize } from './helpers';
+import type { AstroIntegrationLogger } from 'astro';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import type { AstroIntegrationLogger } from 'astro';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { defaultCacheDir } from '../src/defaultConfig';
+import mysongCompress from '../src/index';
+import { setupTestFiles } from './helpers';
 
 describe('Cache System', () => {
   let tempDir: string;
 
   const TEST_FILES = {
     css: {
-      path: 'style.css',
+      name: 'style.css',
       content: `
         .container {
           padding: 20px   20px   20px   20px;
@@ -21,7 +21,7 @@ describe('Cache System', () => {
       `
     },
     js: {
-      path: 'script.js',
+      name: 'script.js',
       content: `
         // This comment should be removed
         function test() {
@@ -48,13 +48,12 @@ describe('Cache System', () => {
     }
   };
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     tempDir = path.join(__dirname, 'fixtures', 'temp-cache-' + Date.now());
-    await fs.mkdir(tempDir, { recursive: true });
     await setupTestFiles(tempDir, TEST_FILES);
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     await fs.rm(tempDir, { recursive: true, force: true });
   });
 
@@ -121,8 +120,8 @@ describe('Cache System', () => {
   }
 
   test('should cache compressed files', async () => {
-    const cssPath = path.join(tempDir, TEST_FILES.css.path);
-    const jsPath = path.join(tempDir, TEST_FILES.js.path);
+    const cssPath = path.join(tempDir, TEST_FILES.css.name);
+    const jsPath = path.join(tempDir, TEST_FILES.js.name);
     
     
     const beforeRunCssStats = await fs.stat(cssPath);
@@ -152,7 +151,7 @@ describe('Cache System', () => {
   });
 
   test('should invalidate cache when file content changes', async () => {
-    const cssPath = path.join(tempDir, TEST_FILES.css.path);
+    const cssPath = path.join(tempDir, TEST_FILES.css.name);
     
     // First compression run
     const compress1 = mysongCompress();
@@ -177,7 +176,7 @@ describe('Cache System', () => {
   });
 
   test('should invalidate cache when compression settings change', async () => {
-    const jsPath = path.join(tempDir, TEST_FILES.js.path);
+    const jsPath = path.join(tempDir, TEST_FILES.js.name);
     
     const originalContent = await fs.readFile(jsPath);
     // First compression run with default settings
