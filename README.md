@@ -1,5 +1,8 @@
 # mysong-compress
 
+> [!WARNING]
+> This project is discontinued, users are encouraged to checkout the fork at https://github.com/jgabriel98/astro-compress
+
 A powerful compression integration for static assets in Astro. This package automatically optimizes and compresses various file types including images, HTML, JavaScript, CSS, and SVG files during the build process.
 
 This integraton is inspired by [astro-compress](https://github.com/withastro/astro-compress) and I would like to thank Nikola Hristov for his excellent work. In my Astro project with hundreds of images, I found that the build time was too long. Because I had difficulty understanding the high level of abstraction in the original package, I decided to create my own solution. For small projects with few images, the original package is faster, but for larger projects with many images, this package is faster.

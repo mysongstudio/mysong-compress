@@ -181,6 +181,9 @@ export default function mysongCompress(options: CompressionOptions = {}): AstroI
         hooks: {
             'astro:config:done': async ({ config, logger }) => {
                 logger.info('mysong-compress started');
+
+                logger.warn('This project is discontinued, please check the README for alternatives. https://github.com/mysongstudio/mysong-compress');
+                
                 astroConfig = config; // Store Astro's config separately
 
                 if (compressionConfig.cache?.enabled) {

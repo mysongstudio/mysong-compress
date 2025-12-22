@@ -9,7 +9,7 @@
     "astro-integration",
     "performance"
   ],
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Compression integration for static assets in astro.",
   "repository": "https://github.com/mysongstudio/mysong-compress",
   "homepage": "https://github.com/mysongstudio/mysong-compress#readme",
