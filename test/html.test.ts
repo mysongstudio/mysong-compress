@@ -1,9 +1,9 @@
-import { describe, test, expect, beforeEach, afterEach } from 'vitest';
-import mysongCompress from '../src/index';
-import { setupTestFiles, getFileSize } from './helpers';
+import type { AstroIntegrationLogger } from 'astro';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import type { AstroIntegrationLogger } from 'astro';
+import { afterEach, beforeAll, describe, expect, test } from 'vitest';
+import mysongCompress from '../src/index';
+import { getFileSize, setupTestFile } from './helpers';
 
 describe('HTML Minification', () => {
   let tempDir: string;
@@ -11,7 +11,7 @@ describe('HTML Minification', () => {
   
   const TEST_HTML = {
     basic: {
-      path: 'test.html',
+      name: 'test.html',
       content: `
         <!DOCTYPE html>
         <html>
@@ -32,7 +32,7 @@ describe('HTML Minification', () => {
       `
     },
     withInlineAssets: {
-      path: 'with-assets.html',
+      name: 'with-assets.html',
       content: `
         <!DOCTYPE html>
         <html>
@@ -68,12 +68,9 @@ describe('HTML Minification', () => {
     label: 'mysong-compress'
   };
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     // Create unique temp directory for this test suite
     tempDir = path.join(__dirname, 'fixtures', 'temp-html-' + Date.now());
-    await fs.mkdir(tempDir, { recursive: true });
-    // Set up test files
-    await setupTestFiles(tempDir, TEST_HTML);
   });
 
   afterEach(async () => {
@@ -152,7 +149,7 @@ describe('HTML Minification', () => {
   }
 
   test('should remove HTML comments', async () => {
-    const filePath = path.join(tempDir, TEST_HTML.basic.path);
+    const filePath = await setupTestFile(tempDir, TEST_HTML.basic);
     const originalContent = await fs.readFile(filePath, 'utf-8');
     
     // Initialize compression with default settings
@@ -168,7 +165,7 @@ describe('HTML Minification', () => {
   });
 
   test('should collapse whitespace while preserving content', async () => {
-    const filePath = path.join(tempDir, TEST_HTML.basic.path);
+    const filePath = await setupTestFile(tempDir, TEST_HTML.basic);
     const originalContent = await fs.readFile(filePath, 'utf-8');
     
     const compress = mysongCompress();
@@ -183,7 +180,7 @@ describe('HTML Minification', () => {
   });
 
   test('should minify inline CSS and JavaScript', async () => {
-    const filePath = path.join(tempDir, TEST_HTML.withInlineAssets.path);
+    const filePath = await setupTestFile(tempDir, TEST_HTML.withInlineAssets);
     const originalSize = await getFileSize(filePath);
     
     const compress = mysongCompress({
@@ -198,7 +195,6 @@ describe('HTML Minification', () => {
     const compressedContent = await fs.readFile(filePath, 'utf-8');
     const compressedSize = await getFileSize(filePath);
     
-    console.log(compressedContent);
     // Check that CSS is minified
     expect(compressedContent).toContain('<style>.container{padding:20px 20px 20px 20px;color:#fff}</style></head>');
     // Check that JS is minified and comments are removed
@@ -210,7 +206,7 @@ describe('HTML Minification', () => {
 
   test('should handle malformed HTML gracefully', async () => {
     const malformedHTML = {
-      path: 'malformed.html',
+      name: 'malformed.html',
       content: `
         <!DOCTYPE html>
         <html>
@@ -224,8 +220,7 @@ describe('HTML Minification', () => {
       `
     };
 
-    await setupTestFiles(tempDir, { malformed: malformedHTML });
-    const filePath = path.join(tempDir, malformedHTML.path);
+    const filePath = await setupTestFile(tempDir, malformedHTML);
     
     const compress = mysongCompress();
     

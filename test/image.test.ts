@@ -1,10 +1,10 @@
-import { describe, test, expect, beforeEach, afterEach } from 'vitest';
-import mysongCompress from '../src/index';
-import { setupTestFiles, getFileSize } from './helpers';
+import type { AstroIntegrationLogger } from 'astro';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import type { AstroIntegrationLogger } from 'astro';
 import sharp from 'sharp';
+import { afterEach, beforeAll, describe, expect, test } from 'vitest';
+import mysongCompress from '../src/index';
+import { getFileSize, setupTestFile } from './helpers';
 
 describe('Image Compression', async () => {
   let tempDir: string;
@@ -13,7 +13,7 @@ describe('Image Compression', async () => {
   // Create test images with more complex data to ensure compression is possible
   const TEST_IMAGES = {
     png: {
-      path: 'test.png',
+      name: 'test.png',
       content: await sharp({
         create: {
           width: 1000,
@@ -35,7 +35,7 @@ describe('Image Compression', async () => {
       .toBuffer()
     },
     jpeg: {
-      path: 'test.jpg',
+      name: 'test.jpg',
       content: await sharp({
         create: {
           width: 1000,
@@ -57,7 +57,7 @@ describe('Image Compression', async () => {
       .toBuffer()
     },
     webp: {
-      path: 'test.webp',
+      name: 'test.webp',
       content: await sharp({
         create: {
           width: 1000,
@@ -77,6 +77,54 @@ describe('Image Compression', async () => {
       }])
       .webp({ quality: 100, effort: 0 }) // Start with high quality, low effort
       .toBuffer()
+    },
+    avif: {
+      name: 'test.avif',
+      content: await sharp({
+        create: {
+          width: 1000,
+          height: 1000,
+          channels: 4,
+          background: { r: 0, g: 255, b: 0, alpha: 1 }
+        }
+      })
+      .composite([{
+        input: Buffer.from(new Array(1000 * 1000 * 4).fill(128)), // Add noise
+        raw: {
+          width: 1000,
+          height: 1000,
+          channels: 4
+        },
+        blend: 'overlay'
+      }])
+      .avif({ quality: 100, effort: 0 })
+      .toBuffer()
+    },
+    heif: {
+      name: 'test.heif',
+      content: await sharp({
+        create: {
+          width: 1000,
+          height: 1000,
+          channels: 4,
+          background: { r: 0, g: 255, b: 0, alpha: 1 }
+        }
+      })
+      .composite([{
+        input: Buffer.from(new Array(1000 * 1000 * 4).fill(128)), // Add noise
+        raw: {
+          width: 1000,
+          height: 1000,
+          channels: 4
+        },
+        blend: 'overlay'
+      }])
+      .heif({ quality: 100, effort: 0, compression: 'av1' })
+      .toBuffer()
+    },
+    corruptImage: {
+      name: 'corrupt.png',
+      content: Buffer.from('not a real image')
     }
   };
 
@@ -92,13 +140,10 @@ describe('Image Compression', async () => {
       level: 'info'
     }
   };
-
-  beforeEach(async () => {
+  
+  beforeAll(async () => {
     // Create unique temp directory for this test suite
     tempDir = path.join(__dirname, 'fixtures', 'temp-image-' + Date.now());
-    await fs.mkdir(tempDir, { recursive: true });
-    // Set up test files
-    await setupTestFiles(tempDir, TEST_IMAGES);
   });
 
   afterEach(async () => {
@@ -169,7 +214,8 @@ describe('Image Compression', async () => {
   }
 
   test('should compress PNG images', async () => {
-    const filePath = path.join(tempDir, TEST_IMAGES.png.path);
+    // Set up test files
+    const filePath = await setupTestFile(tempDir, TEST_IMAGES.png);
     const originalSize = await getFileSize(filePath);
     
     const compress = mysongCompress({
@@ -193,8 +239,8 @@ describe('Image Compression', async () => {
     expect(metadata.format).toBe('png');
   });
 
-  test('should compress JPEG images', async () => {
-    const filePath = path.join(tempDir, TEST_IMAGES.jpeg.path);
+  test('should compress JPEG images', async () => {// Set up test files
+    const filePath = await setupTestFile(tempDir, TEST_IMAGES.jpeg);
     const originalSize = await getFileSize(filePath);
     
     const compress = mysongCompress({
@@ -221,7 +267,8 @@ describe('Image Compression', async () => {
   });
 
   test('should compress WebP images', async () => {
-    const filePath = path.join(tempDir, TEST_IMAGES.webp.path);
+    // Set up test files
+    const filePath = await setupTestFile(tempDir, TEST_IMAGES.webp);
     const originalSize = await getFileSize(filePath);
     
     const compress = mysongCompress({
@@ -244,14 +291,61 @@ describe('Image Compression', async () => {
     expect(metadata.format).toBe('webp');
   });
 
-  test('should handle corrupt images gracefully', async () => {
-    const corruptImage = {
-      path: 'corrupt.png',
-      content: Buffer.from('not a real image')
-    };
+  test('should compress Avif images', async () => {
+    // Set up test files
+    const filePath = await setupTestFile(tempDir, TEST_IMAGES.avif);
+    const originalSize = await getFileSize(filePath);
+    
+    const compress = mysongCompress({
+      avif: {
+        effort: 2
+      }
+    });
+    
+    await runCompression(compress);
 
-    await setupTestFiles(tempDir, { corrupt: corruptImage });
-    const filePath = path.join(tempDir, corruptImage.path);
+    const compressedSize = await getFileSize(filePath);
+    
+    // Verify compression
+    expect(compressedSize).toBeLessThan(originalSize);
+    
+    // Verify image is still valid
+    const metadata = await sharp(filePath).metadata();
+    expect(metadata.width).toBe(1000);
+    expect(metadata.height).toBe(1000);
+    expect(metadata.format).toBe('heif');
+    expect(metadata.compression).toBe('av1');
+  });
+
+  test('should compress Heif images', async () => {
+    // Set up test files
+    const filePath = await setupTestFile(tempDir, TEST_IMAGES.heif);
+    const originalSize = await getFileSize(filePath);
+    
+    const compress = mysongCompress({
+      heif: {
+        effort: 2
+      }
+    });
+    
+    await runCompression(compress);
+
+    const compressedSize = await getFileSize(filePath);
+    
+    // Verify compression
+    expect(compressedSize).toBeLessThan(originalSize);
+    
+    // Verify image is still valid
+    const metadata = await sharp(filePath).metadata();
+    expect(metadata.width).toBe(1000);
+    expect(metadata.height).toBe(1000);
+    expect(metadata.format).toBe('heif');
+    expect(metadata.compression).toBe('av1');
+  });
+
+  test('should handle corrupt images gracefully', async () => {
+    // Set up test files
+    const filePath = await setupTestFile(tempDir, TEST_IMAGES.corruptImage);
     const originalContent = await fs.readFile(filePath);
     
     const compress = mysongCompress();

@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import mysongCompress from '../src/index';
-import { setupTestFiles, getFileSize } from './helpers';
+import { setupTestFiles, getFileSize, setupTestFile } from './helpers';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import type { AstroIntegrationLogger } from 'astro';
@@ -10,7 +10,7 @@ describe('CSS Compression', () => {
 
   const TEST_CSS = {
     basic: {
-      path: 'basic.css',
+      name: 'basic.css',
       content: `
         .container {
           padding: 20px   20px   20px   20px;  /* Should be simplified */
@@ -30,7 +30,7 @@ describe('CSS Compression', () => {
       `
     },
     withVendorPrefixes: {
-      path: 'prefixes.css',
+      name: 'prefixes.css',
       content: `
         .box {
           -webkit-border-radius: 10px;
@@ -134,7 +134,7 @@ describe('CSS Compression', () => {
   }
 
   test('should minify basic CSS', async () => {
-    const filePath = path.join(tempDir, TEST_CSS.basic.path);
+    const filePath = path.join(tempDir, TEST_CSS.basic.name);
     const originalSize = await getFileSize(filePath);
     
     const compress = mysongCompress();
@@ -157,7 +157,7 @@ describe('CSS Compression', () => {
   });
 
   test('should handle vendor prefixes', async () => {
-    const filePath = path.join(tempDir, TEST_CSS.withVendorPrefixes.path);
+    const filePath = path.join(tempDir, TEST_CSS.withVendorPrefixes.name);
     const originalSize = await getFileSize(filePath);
     
     const compress = mysongCompress();
@@ -180,7 +180,7 @@ describe('CSS Compression', () => {
 
   test('should handle malformed CSS gracefully', async () => {
     const malformedCSS = {
-      path: 'malformed.css',
+      name: 'malformed.css',
       content: `
         / .broken {
           color: red  /* Missing closing brace */
@@ -189,8 +189,7 @@ describe('CSS Compression', () => {
       `
     };
 
-    await setupTestFiles(tempDir, { malformed: malformedCSS });
-    const filePath = path.join(tempDir, malformedCSS.path);
+    const filePath = await setupTestFile(tempDir, malformedCSS);
     const originalContent = await fs.readFile(filePath, 'utf-8');
     
     const compress = mysongCompress();
@@ -203,7 +202,6 @@ describe('CSS Compression', () => {
     expect(exists).toBe(true);
     
     const finalContent = await fs.readFile(filePath, 'utf-8');
-    console.log(finalContent);
     expect(finalContent).toBe(originalContent);
   });
 }); 

@@ -1,16 +1,16 @@
-import { describe, test, expect, beforeEach, afterEach } from 'vitest';
-import mysongCompress from '../src/index';
-import { setupTestFiles, getFileSize } from './helpers';
+import type { AstroIntegrationLogger } from 'astro';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import type { AstroIntegrationLogger } from 'astro';
+import { afterEach, beforeAll, describe, expect, test } from 'vitest';
+import mysongCompress from '../src/index';
+import { getFileSize, setupTestFile } from './helpers';
 
 describe('JavaScript Compression', () => {
   let tempDir: string;
 
   const TEST_JS = {
     basic: {
-      path: 'basic.js',
+      name: 'basic.js',
       content: `
         // This comment should be removed
         function calculateSum(a, b) {
@@ -33,7 +33,7 @@ describe('JavaScript Compression', () => {
       `
     },
     withES6: {
-      path: 'modern.js',
+      name: 'modern.js',
       content: `
         const arrowFunction = (x) => {
             return x.map(item => item * 2);
@@ -71,10 +71,8 @@ describe('JavaScript Compression', () => {
     }
   };
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     tempDir = path.join(__dirname, 'fixtures', 'temp-js-' + Date.now());
-    await fs.mkdir(tempDir, { recursive: true });
-    await setupTestFiles(tempDir, TEST_JS);
   });
 
   afterEach(async () => {
@@ -144,7 +142,7 @@ describe('JavaScript Compression', () => {
   }
 
   test('should minify basic JavaScript', async () => {
-    const filePath = path.join(tempDir, TEST_JS.basic.path);
+    const filePath = await setupTestFile(tempDir, TEST_JS.basic);
     const originalSize = await getFileSize(filePath);
     
     const compress = mysongCompress();
@@ -168,7 +166,7 @@ describe('JavaScript Compression', () => {
   });
 
   test('should handle ES6+ features', async () => {
-    const filePath = path.join(tempDir, TEST_JS.withES6.path);
+    const filePath = await setupTestFile(tempDir, TEST_JS.withES6);
     const originalSize = await getFileSize(filePath);
     
     const compress = mysongCompress();
@@ -189,7 +187,7 @@ describe('JavaScript Compression', () => {
 
   test('should handle malformed JavaScript gracefully', async () => {
     const malformedJS = {
-      path: 'malformed.js',
+      name: 'malformed.js',
       content: `
         function broken {  // Missing parentheses
           const x = 'unclosed string
@@ -198,8 +196,7 @@ describe('JavaScript Compression', () => {
       `
     };
 
-    await setupTestFiles(tempDir, { malformed: malformedJS });
-    const filePath = path.join(tempDir, malformedJS.path);
+    const filePath = await setupTestFile(tempDir, malformedJS);
     const originalContent = await fs.readFile(filePath, 'utf-8');
     
     const compress = mysongCompress();

@@ -1,12 +1,20 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
-export async function setupTestFiles(tempDir: string, files: Record<string, any>) {
-  for (const [type, fileInfo] of Object.entries(files)) {
-    const filePath = path.join(tempDir, fileInfo.path);
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.writeFile(filePath, fileInfo.content);
-  }
+type Data = Parameters<typeof fs.writeFile>[1];
+export type TestFileConfig = { name: string, content: Data }
+
+export async function setupTestFiles(tempDir: string, files: Record<string, TestFileConfig>) {
+  await Promise.all(Object.values(files).map(fileInfo =>
+    setupTestFile(tempDir, fileInfo)
+  ));
+}
+
+export async function setupTestFile(tempDir: string, fileInfo: TestFileConfig) {
+  await fs.mkdir(tempDir, { recursive: true });  
+  const filePath = path.join(tempDir, fileInfo.name);
+  await fs.writeFile(filePath, fileInfo.content);
+  return filePath;
 }
 
 export async function getFileSize(filePath: string): Promise<number> {

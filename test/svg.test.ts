@@ -1,9 +1,9 @@
-import { describe, test, expect, beforeEach, afterEach } from 'vitest';
-import mysongCompress from '../src/index';
-import { setupTestFiles, getFileSize } from './helpers';
+import type { AstroIntegrationLogger } from 'astro';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import type { AstroIntegrationLogger } from 'astro';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import mysongCompress from '../src/index';
+import { getFileSize, setupTestFile } from './helpers';
 
 describe('SVG Compression', () => {
   let tempDir: string;
@@ -11,7 +11,7 @@ describe('SVG Compression', () => {
 
   const TEST_SVGS = {
     basic: {
-      path: 'basic.svg',
+      name: 'basic.svg',
       content: `
         <?xml version="1.0" encoding="UTF-8"?>
         <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
@@ -24,7 +24,7 @@ describe('SVG Compression', () => {
       `
     },
     withPaths: {
-      path: 'paths.svg',
+      name: 'paths.svg',
       content: `
         <?xml version="1.0" encoding="UTF-8"?>
         <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
@@ -55,13 +55,11 @@ describe('SVG Compression', () => {
     }
   };
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     tempDir = path.join(__dirname, 'fixtures', 'temp-svg-' + Date.now());
-    await fs.mkdir(tempDir, { recursive: true });
-    await setupTestFiles(tempDir, TEST_SVGS);
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     await fs.rm(tempDir, { recursive: true, force: true });
   });
 
@@ -130,7 +128,7 @@ describe('SVG Compression', () => {
   }
 
   test('should remove comments and format SVG', async () => {
-    const filePath = path.join(tempDir, TEST_SVGS.basic.path);
+    const filePath = await setupTestFile(tempDir, TEST_SVGS.basic);
     const originalSize = await getFileSize(filePath);
     
     const compress = mysongCompress({
@@ -155,7 +153,7 @@ describe('SVG Compression', () => {
   });
 
   test('should optimize paths', async () => {
-    const filePath = path.join(tempDir, TEST_SVGS.withPaths.path);
+    const filePath = await setupTestFile(tempDir, TEST_SVGS.withPaths);
     const originalSize = await getFileSize(filePath);
     
     const compress = mysongCompress({
@@ -180,7 +178,7 @@ describe('SVG Compression', () => {
 
   test('should handle malformed SVG gracefully', async () => {
     const malformedSVG = {
-      path: 'malformed.svg',
+      name: 'malformed.svg',
       content: `
         <?xml version="1.0" encoding="UTF-8"?>
         <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
@@ -190,8 +188,7 @@ describe('SVG Compression', () => {
       `
     };
 
-    await setupTestFiles(tempDir, { malformed: malformedSVG });
-    const filePath = path.join(tempDir, malformedSVG.path);
+    const filePath = await setupTestFile(tempDir, malformedSVG);
     const originalContent = await fs.readFile(filePath, 'utf-8');
     
     const compress = mysongCompress();
